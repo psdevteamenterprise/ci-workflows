@@ -1,0 +1,73 @@
+name: Update velo-npm version on hosts using Github APP
+
+on:
+  workflow_call:
+    inputs:
+      new_version:
+        type: string
+        required: true
+    secrets:
+      GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
+        required: true
+      WIX_CLI_API_KEY:
+        required: true
+      NPM_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo: [ tests-site ]
+    steps:
+      - name: Generate GitHub App token
+        id: token-generator
+        uses: peter-murray/workflow-application-token-action@v2
+        with:
+          application_id: ${{ secrets.GH_APP_ID }}
+          application_private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Checkout Repo Code
+        uses: actions/checkout@v4
+        with:
+          repository: psdevteamenterprise/${{ matrix.repo }}
+          token: ${{ steps.token-generator.outputs.token }}
+          ref: main
+
+      - name: Setup NPM auth
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Wix CLI
+        run: npm install -g @wix/cli
+
+      - name: Login to Wix
+        run: wix login --api-key ${{ secrets.WIX_CLI_API_KEY }}
+
+      - name: Bump velo-npm version to ${{ inputs.new_version }}
+        run: |
+          echo "Received version ${{inputs.new_version}}"
+          npm install @hisense-staging/velo-npm@${{inputs.new_version}} --save-exact
+          wix install
+
+      - name: Commit version change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json wix.lock
+
+      - name: Preview Site
+        run: |
+          echo "Creating Preview for ${{ matrix.repo }}"
+          wix preview --source remote
