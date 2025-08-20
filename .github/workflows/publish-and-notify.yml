@@ -60,7 +60,7 @@ jobs:
   notify-sites:
     needs: publish
     if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major'
-    uses: org-or-user/ci-workflows/.github/workflows/update-sites-npm.yml@main
+    uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
     with:
       new_version: ${{ needs.publish.outputs.version }}
     secrets:
