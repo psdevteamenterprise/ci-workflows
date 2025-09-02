@@ -2,10 +2,21 @@ name: Publish & Notify
 
 on:
   workflow_call:
+    inputs:
+      new_version:
+        description: "New version of the npm package"
+        required: true
+        type: string
     secrets:
       MY_GITHUB_TOKEN:
         required: true
       NPM_TOKEN:
+        required: true
+      GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
+        required: true
+      WIX_CLI_API_KEY:
         required: true
     outputs:
       version:
@@ -64,6 +75,6 @@ jobs:
     with:
       new_version: ${{ needs.publish.outputs.version }}
     secrets:
-      GH_APP_ID: ${{ secrets.APP_ID }}
-      GH_APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      GH_APP_ID: ${{ secrets.GH_APP_ID }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
