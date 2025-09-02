@@ -10,7 +10,7 @@ on:
     secrets:
       MY_GITHUB_TOKEN:
         required: true
-      NPM_TOKEN_PUBLISH:
+      NPM_TOKEN:
           required: true
       GH_APP_ID:
         required: true
@@ -44,7 +44,7 @@ jobs:
         id: publish
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-          NPM_TOKEN_PUBLISH: ${{ secrets.NPM_TOKEN_PUBLISH }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
       - name: Extract release type
@@ -78,3 +78,4 @@ jobs:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
