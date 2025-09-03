@@ -7,6 +7,10 @@ on:
         description: "New version of the npm package"
         required: true
         type: string
+      source_repo:
+        description: "The source repository to checkout"
+        required: true
+        type: string
     secrets:
       MY_GITHUB_TOKEN:
         required: true
@@ -33,7 +37,6 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     outputs:
-      # The outputs now correctly reference the 'release' step
       version: ${{ steps.release.outputs.new_release_version }}
       releaseType: ${{ steps.release.outputs.release_type }}
       isPublished: ${{ steps.release.outputs.new_release_published }}
@@ -41,7 +44,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # This is critical for semantic-release to find previous tags
+          repository: ${{ github.repository }} # This is the change
+          fetch-depth: 0
+          token: ${{ secrets.MY_GITHUB_TOKEN }} # This is also needed
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -52,7 +57,7 @@ jobs:
         run: npm ci
 
       - name: Run Semantic Release
-        id: release # We give a name to this step so we can reference its outputs
+        id: release
         uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
