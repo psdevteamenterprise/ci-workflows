@@ -47,6 +47,9 @@ jobs:
           repository: ${{ github.repository }} # This is the change
           fetch-depth: 0
           token: ${{ secrets.MY_GITHUB_TOKEN }} # This is also needed
+          
+      - name: List remote tags
+        run: git ls-remote --tags
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
