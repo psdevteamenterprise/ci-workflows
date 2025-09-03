@@ -1,4 +1,4 @@
-name: Update velo-npm version on hosts using Github APP
+name: Update NPM Package on hosts using Github APP
 
 on:
   workflow_call:
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo: ${{ inputs.sites_to_update }}.split(',')
+        repo: ${{ fromJSON(inputs.sites_to_update) }}
     steps:
       - name: Generate GitHub App token
         id: token-generator
@@ -60,7 +60,7 @@ jobs:
       - name: Login to Wix
         run: wix login --api-key ${{ secrets.WIX_CLI_API_KEY }}
 
-      - name: Bump velo-npm version to ${{ inputs.new_version }}
+      - name: Bump NPM package version to ${{ inputs.new_version }}
         run: |
           echo "Received version ${{inputs.new_version}}"
           npm install ${{inputs.package_name}}@${{inputs.new_version}} --save-exact
