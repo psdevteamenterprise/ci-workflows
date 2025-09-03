@@ -11,7 +11,7 @@ on:
         required: true
 
     secrets:
-      GITHUB_TOKEN:
+      GH_TOKEN:
         required: true
       NPM_TOKEN:
         required: true
@@ -45,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,7 +63,7 @@ jobs:
         id: release
         uses: cycjimmy/semantic-release-action@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   notify-sites:
