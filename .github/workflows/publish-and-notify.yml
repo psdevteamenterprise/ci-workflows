@@ -1,16 +1,9 @@
+# File: .github/workflows/publish-and-notify.yml
+
 name: Publish & Notify
 
 on:
   workflow_call:
-    inputs:
-      new_version:
-        description: "New version of the npm package"
-        required: true
-        type: string
-      source_repo:
-        description: "The source repository to checkout"
-        required: true
-        type: string
     secrets:
       MY_GITHUB_TOKEN:
         required: true
@@ -44,10 +37,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository }} # This is the change
+          repository: ${{ github.repository }}
           fetch-depth: 0
-          token: ${{ secrets.MY_GITHUB_TOKEN }} # This is also needed
-          
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+      
       - name: List remote tags
         run: git ls-remote --tags
 
