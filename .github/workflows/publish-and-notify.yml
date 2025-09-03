@@ -11,7 +11,7 @@ on:
       MY_GITHUB_TOKEN:
         required: true
       NPM_TOKEN:
-          required: true
+        required: true
       GH_APP_ID:
         required: true
       GH_APP_PRIVATE_KEY:
@@ -33,40 +33,30 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.publish.outputs.new-release-version }}
-      releaseType: ${{ steps.extract_release_type.outputs.release_type }}
-      isPublished: ${{ steps.publish.outputs.new-release-published }}
+      # The outputs now correctly reference the 'release' step
+      version: ${{ steps.release.outputs.new_release_version }}
+      releaseType: ${{ steps.release.outputs.release_type }}
+      isPublished: ${{ steps.release.outputs.new_release_published }}
     steps:
-      - uses: actions/checkout@v4
-      - run: npm ci
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # This is critical for semantic-release to find previous tags
 
-      - name: Publish
-        id: publish
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Semantic Release
+        id: release # We give a name to this step so we can reference its outputs
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release
-
-      - name: Extract release type
-        id: extract_release_type
-        run: |
-          if [ -f release-info.env ]; then
-            source release-info.env
-            echo "release_type=${RELEASE_TYPE:-none}" >> $GITHUB_OUTPUT
-          else
-            echo "release_type=none" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Debug Version
-        run: |
-          echo "version: ${{ steps.publish.outputs.new-release-version }}"
-          echo "tag: ${{ steps.publish.outputs.new-release-git-tag }}"
-          echo "Is Published: ${{ steps.publish.outputs.new-release-published }}"
-          echo "Release Type: ${{ steps.extract_release_type.outputs.release_type }}"
-          if [ -f release-info.env ]; then
-            echo "Release Info Content:"
-            cat release-info.env
-          fi
 
   notify-sites:
     needs: publish
