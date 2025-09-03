@@ -6,6 +6,12 @@ on:
       new_version:
         type: string
         required: true
+      sites_to_update:
+        type: string
+        required: true
+      package_name:
+        type: string
+        required: true
     secrets:
       GH_APP_ID:
         required: true
@@ -23,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo: [ tests-site ]
+        repo: ${{ inputs.sites_to_update }}.split(',')
     steps:
       - name: Generate GitHub App token
         id: token-generator
@@ -35,7 +41,7 @@ jobs:
       - name: Checkout Repo Code
         uses: actions/checkout@v4
         with:
-          repository: psdevteamenterprise/${{ matrix.repo }}
+          repository: ${{ matrix.repo }}
           token: ${{ steps.token-generator.outputs.token }}
           ref: main
 
@@ -57,7 +63,7 @@ jobs:
       - name: Bump velo-npm version to ${{ inputs.new_version }}
         run: |
           echo "Received version ${{inputs.new_version}}"
-          npm install @hisense-staging/velo-npm@${{inputs.new_version}} --save-exact
+          npm install ${{inputs.package_name}}@${{inputs.new_version}} --save-exact
           wix install
 
       - name: Commit version change

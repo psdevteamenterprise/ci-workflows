@@ -4,8 +4,14 @@ name: Publish & Notify
 
 on:
   workflow_call:
+    inputs:
+      sites_to_update:
+        type: string
+        description: "The sites to update separate by comma"
+        required: true
+
     secrets:
-      MY_GITHUB_TOKEN:
+      GITHUB_TOKEN:
         required: true
       NPM_TOKEN:
         required: true
@@ -39,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           fetch-depth: 0
-          token: ${{ secrets.MY_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,12 +54,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+      
+      - name: Get package name
+        id: get_package_name
+        run: echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
 
       - name: Run Semantic Release
         id: release
         uses: cycjimmy/semantic-release-action@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   notify-sites:
@@ -62,6 +72,8 @@ jobs:
     uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
     with:
       new_version: ${{ needs.publish.outputs.version }}
+      package_name: ${{ needs.publish.outputs.package_name }}
+      sites_to_update: ${{ inputs.sites_to_update }}
     secrets:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
