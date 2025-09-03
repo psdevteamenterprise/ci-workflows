@@ -40,9 +40,6 @@ jobs:
           repository: ${{ github.repository }}
           fetch-depth: 0
           token: ${{ secrets.MY_GITHUB_TOKEN }}
-      
-      - name: List remote tags
-        run: git ls-remote --tags
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
