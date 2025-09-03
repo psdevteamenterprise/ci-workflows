@@ -60,7 +60,7 @@ jobs:
       - name: Login to Wix
         run: wix login --api-key ${{ secrets.WIX_CLI_API_KEY }}
 
-      - name: Bump NPM package version to ${{ inputs.new_version }}
+      - name: Bump NPM package version to ${{ inputs.new_version }} ${{ inputs.package_name }}
         run: |
           echo "Received version ${{inputs.new_version}}"
           npm install ${{inputs.package_name}}@${{inputs.new_version}} --save-exact
