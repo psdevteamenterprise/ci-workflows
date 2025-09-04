@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       sites_to_update:
-        description: "Comma-separated list of repos to update"
+        description: "Array of repos to update"
         required: true
         type: string
     secrets:
@@ -73,7 +73,7 @@ jobs:
 
   notify-sites:
     needs: publish
-    if: needs.publish.outputs.isPublished == 'true'
+    if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major'
     uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
     with:
       new_version: ${{ needs.publish.outputs.version }}
