@@ -39,7 +39,6 @@ jobs:
       version: ${{ steps.release.outputs.new_release_version }}
       releaseType: ${{ steps.release.outputs.release_type }}
       isPublished: ${{ steps.release.outputs.new_release_published }}
-      # This is the crucial line: it exports the step output as a job output
       package_name: ${{ steps.get_package_name.outputs.name }}
     steps:
       - name: Checkout repository
@@ -59,7 +58,11 @@ jobs:
 
       - name: Get package name
         id: get_package_name
-        run: echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          echo "Package name: $PACKAGE_NAME"
+          echo "::notice title=Package name::$PACKAGE_NAME"
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Run Semantic Release
         id: release
