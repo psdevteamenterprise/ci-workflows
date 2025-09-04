@@ -78,6 +78,6 @@ jobs:
         with:
           token: ${{ steps.token-generator.outputs.token }}
           commit-message: "chore: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
-          title: "chore: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
+          title: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
           body: "Bumps the version of ${{ inputs.package_name }} to `v${{ inputs.new_version }}` to bring it up to date."
           branch: "update-${{ inputs.package_name }}-v${{ inputs.new_version }}"
