@@ -1,6 +1,5 @@
 name: Publish & Notify
 
-
 on:
  workflow_call:
    inputs:
