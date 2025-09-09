@@ -8,6 +8,7 @@ on:
        description: "Array of repos to update"
        required: true
        type: string
+       
    secrets:
      GH_TOKEN:
        required: true
