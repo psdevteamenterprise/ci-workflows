@@ -75,6 +75,14 @@ jobs:
          echo "::notice title=Package name::$PACKAGE_NAME"
          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
+     - name: Debug Git status
+       run: |
+          git branch
+          git status
+          git fetch origin main
+          git log -1
+          git remote -v
+
      - name: Run Semantic Release
        id: release
        uses: cycjimmy/semantic-release-action@v4
