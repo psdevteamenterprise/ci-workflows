@@ -68,21 +68,18 @@ jobs:
           echo "$token_response" > token.json
           token=$(jq -r '.token' token.json)
           echo "installation_token=$token" >> $GITHUB_OUTPUT
+      
+      - run: |
+          echo "Token length: ${{ steps.generate_installation_token.outputs.installation_token }}" | wc -c
+          echo "Token: ${{ steps.generate_installation_token.outputs.installation_token }}"
 
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.repo }}
           token: ${{ steps.generate_installation_token.outputs.installation_token }}
-          ref: main  
-
-      - name: Checkout Repo Code
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.repo }}
-          token: ${{ steps.token-generator.outputs.token }}
           ref: main
-
+        
       - name: Setup NPM auth
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
