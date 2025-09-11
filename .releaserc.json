@@ -1,7 +1,6 @@
 {
   "branches": [
-    "main",
-    "useWorkflow"
+    "main"
   ],
   "plugins": [
     "@semantic-release/commit-analyzer",
