@@ -47,11 +47,13 @@ jobs:
 
       - name: Get installation ID for repo
         id: get_installation_id
+        env:
+          JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
         run: |
           owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
           repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
           echo "Owner: $owner, Repo: $repo"
-          installation=$(curl -sSL -H "Authorization: Bearer ${{ steps.generate_jwt.outputs.token }}" \
+          installation=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$owner/$repo/installation")
           echo "Installation response: $installation"
