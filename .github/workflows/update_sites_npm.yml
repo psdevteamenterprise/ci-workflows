@@ -40,7 +40,7 @@ jobs:
   
       - name: Generate app JWT token
         id: generate_jwt
-        uses: softprops/app-token@v2
+        uses: peter-murray/workflow-application-token-action@v2
         with:
           app_id: ${{ secrets.GH_APP_ID }}
           private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
