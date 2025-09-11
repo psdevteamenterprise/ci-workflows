@@ -6,12 +6,16 @@ on:
       new_version:
         type: string
         required: true
-      sites_to_update:
+      repos_to_update:
         type: string
         required: true
       package_name:
         type: string
         required: true
+      wix_site:
+          type: boolean
+          required: false
+          default: true
     secrets:
       GH_APP_ID:
         required: true
@@ -29,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo: ${{ fromJSON(inputs.sites_to_update) }}
+        repo: ${{ fromJSON(inputs.repos_to_update) }}
     steps:
       - name: Generate GitHub App token
         id: token-generator
@@ -55,24 +59,28 @@ jobs:
         run: npm ci
 
       - name: Install Wix CLI
+        if: ${{ inputs.wix_site }}
         run: npm install -g @wix/cli
 
       - name: Login to Wix
+        if: ${{ inputs.wix_site }}
         run: wix login --api-key ${{ secrets.WIX_CLI_API_KEY }}
 
       - name: Bump NPM package version to ${{ inputs.new_version }}
         run: |
           echo "Received version ${{inputs.new_version}}"
           npm install ${{inputs.package_name}}@${{inputs.new_version}} --save-exact
-          wix install
+          if [ "${{ inputs.wix_site }}" = "true" ]; then
+            wix install
+          fi
 
       - name: Add changes to git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json wix.lock
+          git add package.json package-lock.json ${inputs.wix_site ? "wix.lock" : ""}
 
-      - name: Create Pull Request
+      - name: Create Pull Request 
         id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:

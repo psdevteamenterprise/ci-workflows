@@ -3,10 +3,16 @@ name: Publish & Notify
 on:
  workflow_call:
    inputs:
-     sites_to_update:
+      sites_to_update:
        description: "Array of repos to update"
-       required: true
+       required: false
        type: string
+       default: '[]'
+      npm_packages_to_update:
+        description: "Array of npm packages to update"
+        type: string
+        required: false
+        default: '[]'
        
    secrets:
      GH_TOKEN:
@@ -19,6 +25,7 @@ on:
        required: true
      WIX_CLI_API_KEY:
        required: true
+
    outputs:
      version:
        description: "The new package version released"
@@ -35,7 +42,7 @@ on:
 
 
 jobs:
- publish:
+  publish:
    runs-on: ubuntu-latest
    outputs:
      version: ${{ steps.release.outputs.new_release_version }}
@@ -76,17 +83,32 @@ jobs:
          GH_TOKEN: ${{ secrets.GH_TOKEN }}
          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-
- notify-sites:
+  notify-sites:
    needs: publish
-   if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major'
+   if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major' && inputs.sites_to_update != '[]'
    uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
    with:
      new_version: ${{ needs.publish.outputs.version }}
-     sites_to_update: ${{ inputs.sites_to_update }}
+     repos_to_update: ${{ inputs.sites_to_update }}
      package_name: ${{ needs.publish.outputs.package_name }}
+     wix_site: true 
    secrets:
      GH_APP_ID: ${{ secrets.GH_APP_ID }}
      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
      WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  update-npm-packages:
+    needs: publish
+    if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major' && inputs.npm_packages_to_update != '[]'
+    uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
+    with:
+      new_version: ${{ needs.publish.outputs.version }}
+      repos_to_update: ${{ inputs.npm_packages_to_update }}
+      package_name: ${{ needs.publish.outputs.package_name }}
+      wix_site: false 
+    secrets:
+      GH_APP_ID: ${{ secrets.GH_APP_ID }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+      WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
