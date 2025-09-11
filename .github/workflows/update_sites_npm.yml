@@ -35,12 +35,46 @@ jobs:
       matrix:
         repo: ${{ fromJSON(inputs.repos_to_update) }}
     steps:
-      - name: Generate GitHub App token
-        id: token-generator
-        uses: peter-murray/workflow-application-token-action@v2
+      - name: Set up jq (to parse JSON)
+        run: sudo apt-get install -y jq
+  
+      - name: Generate app JWT token
+        id: generate_jwt
+        uses: softprops/app-token@v2
         with:
-          application_id: ${{ secrets.GH_APP_ID }}
-          application_private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Get installation ID for repo
+        id: get_installation_id
+        run: |
+          owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
+          repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
+          echo "Owner: $owner, Repo: $repo"
+          installation=$(curl -sSL -H "Authorization: Bearer ${{ steps.generate_jwt.outputs.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$owner/$repo/installation")
+          echo "Installation response: $installation"
+          id=$(echo "$installation" | jq -r '.id')
+          echo "installation_id=$id" >> $GITHUB_OUTPUT
+
+      - name: Generate installation token
+        id: generate_installation_token
+        run: |
+          token_response=$(curl -sSL -X POST \
+            -H "Authorization: Bearer ${{ steps.generate_jwt.outputs.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/app/installations/${{ steps.get_installation_id.outputs.installation_id }}/access_tokens")
+          echo "$token_response" > token.json
+          token=$(jq -r '.token' token.json)
+          echo "installation_token=$token" >> $GITHUB_OUTPUT
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ steps.generate_installation_token.outputs.installation_token }}
+          ref: main  
 
       - name: Checkout Repo Code
         uses: actions/checkout@v4
