@@ -75,6 +75,10 @@ jobs:
          echo "::notice title=Package name::$PACKAGE_NAME"
          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
+     - name: Debug Semantic Release
+       run: npx semantic-release --debug
+
+
 
      - name: Run Semantic Release
        id: release
@@ -83,6 +87,7 @@ jobs:
          GH_TOKEN: ${{ secrets.GH_TOKEN }}
          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
          GITHUB_REF_NAME: useWorkflow
+
 
   notify-sites:
    needs: publish
