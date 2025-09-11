@@ -82,6 +82,7 @@ jobs:
        env:
          GH_TOKEN: ${{ secrets.GH_TOKEN }}
          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+         GITHUB_REF_NAME: useWorkflow
 
   notify-sites:
    needs: publish
