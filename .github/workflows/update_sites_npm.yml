@@ -44,6 +44,13 @@ jobs:
         with:
           application_id: ${{ secrets.GH_APP_ID }}
           application_private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+      
+      - name: Print part of the JWT token for debug
+        run: |
+            token="${{ steps.generate_jwt.outputs.token }}"
+            echo "Token length: ${#token}"
+            echo "Token start: ${token:0:10}... (truncated)"
+            echo "::add-mask::$token"  # This masks the full token in logs
 
       - name: Get installation ID for repo
         id: get_installation_id
