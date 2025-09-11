@@ -87,6 +87,8 @@ jobs:
          GH_TOKEN: ${{ secrets.GH_TOKEN }}
          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
          GITHUB_REF_NAME: useWorkflow
+         GITHUB_REF: refs/heads/useWorkflow
+         GITHUB_HEAD_REF: useWorkflow
 
 
   notify-sites:
