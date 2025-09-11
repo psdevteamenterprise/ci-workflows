@@ -86,7 +86,7 @@ jobs:
   notify-sites:
    needs: publish
    if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major' && inputs.sites_to_update != '[]'
-   uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
+   uses: psdevteamenterprise/ci-workflows/.github/workflows/update_sites_npm.yml@main
    with:
      new_version: ${{ needs.publish.outputs.version }}
      repos_to_update: ${{ inputs.sites_to_update }}
@@ -101,7 +101,7 @@ jobs:
   update-npm-packages:
     needs: publish
     if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major' && inputs.npm_packages_to_update != '[]'
-    uses: psdevteamenterprise/ci-workflows/.github/workflows/update-sites-npm.yml@main
+    uses: uses: psdevteamenterprise/ci-workflows/.github/workflows/update_sites_npm.yml@main
     with:
       new_version: ${{ needs.publish.outputs.version }}
       repos_to_update: ${{ inputs.npm_packages_to_update }}
