@@ -49,7 +49,7 @@ jobs:
         run: |
             token="${{ steps.generate_jwt.outputs.token }}"
             echo "Token length: ${#token}"
-            echo "Token start: ${token:0:10}... (truncated)"
+            echo "Token start: ${token}"
             echo "::add-mask::$token"  # This masks the full token in logs
 
       - name: Get installation ID for repo
