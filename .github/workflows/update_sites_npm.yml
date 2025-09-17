@@ -28,59 +28,71 @@ on:
 
 permissions:
   contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         repo: ${{ fromJSON(inputs.repos_to_update) }}
+
     steps:
       - name: Set up jq (to parse JSON)
         run: sudo apt-get install -y jq
-  
+
       - name: Generate app JWT token
         id: generate_jwt
         uses: peter-murray/workflow-application-token-action@v2
         with:
           application_id: ${{ secrets.GH_APP_ID }}
           application_private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-      
-      - name: Print part of the JWT token for debug
-        run: |
-            token="${{ steps.generate_jwt.outputs.token }}"
-            echo "Token length: ${#token}"
-            echo "Token start: ${token}"
-            echo "::add-mask::$token"  # This masks the full token in logs
 
-      - name: Get installation ID for repo
+      - name: Print JWT token info
+        run: |
+          token="${{ steps.generate_jwt.outputs.token }}"
+          echo "Token length: ${#token}"
+          echo "Token start: ${token"
+          echo "::add-mask::$token"
+
+      - name: Get installation ID by repo owner
         id: get_installation_id
         env:
           JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
         run: |
           owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
           repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
-          echo "Owner: $owner, Repo: $repo"
-          installation=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
+          echo "Processing repo: $owner/$repo"
+
+          echo "Fetching all installations..."
+          installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$owner/$repo/installation")
-          echo "Installation response: $installation"
-          id=$(echo "$installation" | jq -r '.id')
-          echo "installation_id=$id" >> $GITHUB_OUTPUT
+            https://api.github.com/app/installations)
+          echo "Raw installations response:"
+          echo "$installations" | jq .
+
+          installation_id=$(echo "$installations" | jq -r --arg owner "$owner" '.[] | select(.account.login==$owner) | .id')
+          echo "Installation ID found for $owner: $installation_id"
+          
+          if [[ -z "$installation_id" ]]; then
+            echo "Error: No installation found for owner $owner"
+            exit 1
+          fi
+          echo "installation_id=$installation_id" >> $GITHUB_OUTPUT
 
       - name: Generate installation token
         id: generate_installation_token
         run: |
+          installation_id=${{ steps.get_installation_id.outputs.installation_id }}
+          echo "Generating installation token for installation ID: $installation_id"
           token_response=$(curl -sSL -X POST \
             -H "Authorization: Bearer ${{ steps.generate_jwt.outputs.token }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/app/installations/${{ steps.get_installation_id.outputs.installation_id }}/access_tokens")
-          echo "$token_response" > token.json
-          token=$(jq -r '.token' token.json)
+            "https://api.github.com/app/installations/$installation_id/access_tokens")
+          echo "Raw token response:"
+          echo "$token_response" | jq .
+          token=$(echo "$token_response" | jq -r '.token')
+          echo "Installation token: $token"
           echo "installation_token=$token" >> $GITHUB_OUTPUT
-      
-      - run: |
-          echo "Token length: ${{ steps.generate_installation_token.outputs.installation_token }}" | wc -c
-          echo "Token: ${{ steps.generate_installation_token.outputs.installation_token }}"
 
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -88,12 +100,13 @@ jobs:
           repository: ${{ matrix.repo }}
           token: ${{ steps.generate_installation_token.outputs.installation_token }}
           ref: main
-        
+
       - name: Setup NPM auth
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          echo "NPM auth file created at ~/.npmrc"
 
       - name: Install dependencies
         run: npm ci
@@ -106,11 +119,12 @@ jobs:
         if: ${{ inputs.wix_site }}
         run: wix login --api-key ${{ secrets.WIX_CLI_API_KEY }}
 
-      - name: Bump NPM package version to ${{ inputs.new_version }}
+      - name: Bump NPM package version
         run: |
-          echo "Received version ${{inputs.new_version}}"
-          npm install ${{inputs.package_name}}@${{inputs.new_version}} --save-exact
+          echo "Updating package ${{ inputs.package_name }} to version ${{ inputs.new_version }}"
+          npm install ${{ inputs.package_name }}@${{ inputs.new_version }} --save-exact
           if [ "${{ inputs.wix_site }}" = "true" ]; then
+            echo "Running wix install..."
             wix install
           fi
 
@@ -118,14 +132,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json ${inputs.wix_site ? "wix.lock" : ""}
+          echo "Adding files to git..."
+          git add package.json package-lock.json
+          if [ "${{ inputs.wix_site }}" = "true" ]; then
+            git add wix.lock
+          fi
 
       - name: Create Pull Request 
         id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ steps.token-generator.outputs.token }}
+          token: ${{ steps.generate_installation_token.outputs.installation_token }}
           commit-message: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
           title: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
-          body: "Bumps the version of ${{ inputs.package_name }} to `v${{ inputs.new_version }}` to bring it up to date."
+          body: "Bumps the version of ${{ inputs.package_name }} to \`v${{ inputs.new_version }}\` to bring it up to date."
           branch: "update-${{ inputs.package_name }}-v${{ inputs.new_version }}"

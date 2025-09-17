@@ -90,20 +90,29 @@ jobs:
          GH_TOKEN: ${{ secrets.GH_TOKEN }}
          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+     - name: Debug publish outputs 
+       run: |
+        echo "isPublished: ${{ steps.release.outputs.new_release_published }}"
+        echo "releaseType: ${{ steps.release.outputs.release_type }}"
+        echo "version: ${{ steps.release.outputs.new_release_version }}"
+        echo "package_name: ${{ steps.get_package_name.outputs.name }}"
+        echo "sites_to_update: ${{ inputs.sites_to_update }}"
+        echo "npm_packages_to_update: ${{ inputs.npm_packages_to_update }}"
+      
   notify-sites:
-   needs: publish
-   if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major' && inputs.sites_to_update != '[]'
-   uses: psdevteamenterprise/ci-workflows/.github/workflows/update_sites_npm.yml@main
-   with:
-     new_version: ${{ needs.publish.outputs.version }}
-     repos_to_update: ${{ inputs.sites_to_update }}
-     package_name: ${{ needs.publish.outputs.package_name }}
-     wix_site: true 
-   secrets:
-     GH_APP_ID: ${{ secrets.GH_APP_ID }}
-     GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
-     WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
-     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    needs: publish
+    if: needs.publish.outputs.isPublished == 'true' && needs.publish.outputs.releaseType != 'major' && inputs.sites_to_update != '[]'
+    uses: psdevteamenterprise/ci-workflows/.github/workflows/update_sites_npm.yml@main
+    with:
+      new_version: ${{ needs.publish.outputs.version }}
+      repos_to_update: ${{ inputs.sites_to_update }}
+      package_name: ${{ needs.publish.outputs.package_name }}
+      wix_site: true 
+    secrets:
+      GH_APP_ID: ${{ secrets.GH_APP_ID }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+      WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   update-npm-packages:
     needs: publish
