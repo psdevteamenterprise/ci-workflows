@@ -13,11 +13,13 @@ on:
         type: string
         required: true
       wix_site:
-        type: boolean
-        required: false
-        default: true
+          type: boolean
+          required: false
+          default: true
     secrets:
       GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
         required: true
       WIX_CLI_API_KEY:
         required: true
@@ -35,7 +37,7 @@ jobs:
         repo: ${{ fromJSON(inputs.repos_to_update) }}
 
     steps:
-      - name: Set up jq
+      - name: Set up jq (to parse JSON)
         run: sudo apt-get install -y jq
 
       - name: Generate app JWT token
@@ -43,40 +45,49 @@ jobs:
         uses: peter-murray/workflow-application-token-action@v2
         with:
           application_id: ${{ secrets.GH_APP_ID }}
-          application_private_key: ./app-for-ci-wokflows.2025-08-20.private-key.pem
+          application_private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
       - name: Print JWT token info
         run: |
           token="${{ steps.generate_jwt.outputs.token }}"
           echo "Token length: ${#token}"
-          echo "Token start: ${token:0:20}"
+          echo "Token start: ${token}"
           echo "::add-mask::$token"
-
+      
+      - name: Debug private key input
+        run: |
+            echo "Private key first line:"
+            echo "${{ secrets.GH_APP_PRIVATE_KEY }}" | head -n 1
+            echo "Private key last line:"
+            echo "${{ secrets.GH_APP_PRIVATE_KEY }}" | tail -n 1
+      
       - name: Get installation ID by repo owner
         id: get_installation_id
         env:
           JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
         run: |
-          owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
-          repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
-          echo "Processing repo: $owner/$repo"
-
-          installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/app/installations)
-
-          echo "Raw installations response:"
-          echo "$installations" | jq .
-
-          installation_id=$(echo "$installations" | jq -r --arg owner "$owner" '.[] | select(.account.login==$owner) | .id')
-          echo "Installation ID found for $owner: $installation_id"
-
-          if [[ -z "$installation_id" || "$installation_id" == "null" ]]; then
-            echo "❌ Error: No installation found for owner $owner"
-            exit 1
-          fi
-
-          echo "installation_id=$installation_id" >> $GITHUB_OUTPUT
+              owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
+              repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
+              echo "Processing repo: $owner/$repo"
+          
+              echo "Fetching all installations..."
+              installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                https://api.github.com/app/installations)
+          
+              echo "Raw installations response:"
+              echo "$installations" | jq .
+          
+              installation_id=$(echo "$installations" | jq -r --arg owner "$owner" '.installations[] | select(.account.login==$owner) | .id')
+              echo "Installation ID found for $owner: $installation_id"
+          
+              if [[ -z "$installation_id" || "$installation_id" == "null" ]]; then
+                echo "❌ Error: No installation found for owner $owner"
+                exit 1
+              fi
+          
+              echo "installation_id=$installation_id" >> $GITHUB_OUTPUT
+          
 
       - name: Generate installation token
         id: generate_installation_token
