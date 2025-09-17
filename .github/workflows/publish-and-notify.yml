@@ -110,7 +110,6 @@ jobs:
       wix_site: true 
     secrets:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
-      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -125,6 +124,5 @@ jobs:
       wix_site: false 
     secrets:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
-      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
