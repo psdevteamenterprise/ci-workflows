@@ -53,6 +53,13 @@ jobs:
           echo "Token length: ${#token}"
           echo "Token start: ${token}"
           echo "::add-mask::$token"
+      
+      - name: Debug private key input
+        run: |
+            echo "Private key first line:"
+            echo "${{ secrets.GH_APP_PRIVATE_KEY }}" | head -n 1
+            echo "Private key last line:"
+            echo "${{ secrets.GH_APP_PRIVATE_KEY }}" | tail -n 1
 
       - name: Get installation ID by repo owner
         id: get_installation_id
