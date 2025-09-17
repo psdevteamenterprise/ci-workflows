@@ -66,25 +66,38 @@ jobs:
         env:
           JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
         run: |
-          owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
-          repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
-          echo "Processing repo: $owner/$repo"
-
-          echo "Fetching all installations..."
-          installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/app/installations)
-          echo "Raw installations response:"
-          echo "$installations" | jq .
-
-          installation_id=$(echo "$installations" | jq -r --arg owner "$owner" '.[] | select(.account.login==$owner) | .id')
-          echo "Installation ID found for $owner: $installation_id"
-          
-          if [[ -z "$installation_id" ]]; then
-            echo "Error: No installation found for owner $owner"
-            exit 1
-          fi
-          echo "installation_id=$installation_id" >> $GITHUB_OUTPUT
+              owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
+              repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
+              echo "Processing repo: $owner/$repo"
+    
+              echo "Fetching all installations..."
+              installations=$(curl -sSL \
+                -H "Authorization: Bearer $JWT_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                https://api.github.com/app/installations)
+    
+              echo "Raw installations response:"
+              echo "$installations" | jq .
+    
+              # Check the JSON type
+              type=$(echo "$installations" | jq -r 'type')
+              echo "Installations JSON type: $type"
+    
+              if [ "$type" != "array" ]; then
+                echo "❌ Error: Expected array, got $type"
+                echo "Most likely the JWT is invalid or expired."
+                exit 1
+              fi
+    
+              installation_id=$(echo "$installations" | jq -r --arg owner "$owner" '.[] | select(.account.login==$owner) | .id')
+              echo "Installation ID found for $owner: $installation_id"
+    
+              if [[ -z "$installation_id" || "$installation_id" == "null" ]]; then
+                echo "❌ Error: No installation found for owner $owner"
+                exit 1
+              fi
+    
+              echo "installation_id=$installation_id" >> $GITHUB_OUTPUT
 
       - name: Generate installation token
         id: generate_installation_token
