@@ -51,7 +51,7 @@ jobs:
         run: |
           token="${{ steps.generate_jwt.outputs.token }}"
           echo "Token length: ${#token}"
-          echo "Token start: ${token"
+          echo "Token start: ${token}"
           echo "::add-mask::$token"
 
       - name: Get installation ID by repo owner
