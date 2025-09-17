@@ -51,15 +51,22 @@ jobs:
         run: |
           token="${{ steps.generate_jwt.outputs.token }}"
           echo "Token length: ${#token}"
-          echo "Token start: ${token}"
-          echo "::add-mask::$token"
       
-      - name: Debug private key input
+      - name: Fetch installations raw
+        env:
+          JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
         run: |
-            echo "Private key first line:"
-            echo "${{ secrets.GH_APP_PRIVATE_KEY }}" | head -n 1
-            echo "Private key last line:"
-            echo "${{ secrets.GH_APP_PRIVATE_KEY }}" | tail -n 1
+          owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
+          repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
+          echo "Processing repo: $owner/$repo"
+
+          echo "Fetching all installations..."
+          installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/app/installations)
+
+          echo "Raw installations response:"
+          echo "$installations"
       
       - name: Get installation ID by repo owner
         id: get_installation_id
