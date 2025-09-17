@@ -145,5 +145,5 @@ jobs:
           token: ${{ steps.generate_installation_token.outputs.installation_token }}
           commit-message: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
           title: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
-          body: "Bumps the version of ${{ inputs.package_name }} to \`v${{ inputs.new_version }}\` to bring it up to date."
+          body: "Bumps the version of ${{ inputs.package_name }} to `v${{ inputs.new_version }}` to bring it up to date."
           branch: "update-${{ inputs.package_name }}-v${{ inputs.new_version }}"
