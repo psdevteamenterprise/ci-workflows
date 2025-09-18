@@ -73,7 +73,7 @@ jobs:
           echo "NPM auth file created at ~/.npmrc"       
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Install Wix CLI
         if: ${{ inputs.wix_site }}
