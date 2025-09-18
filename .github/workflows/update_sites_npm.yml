@@ -71,9 +71,12 @@ jobs:
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
           echo "NPM auth file created at ~/.npmrc"
+      
+      - name: Clean npm cache
+        run: npm cache clean --force        
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install Wix CLI
         if: ${{ inputs.wix_site }}
