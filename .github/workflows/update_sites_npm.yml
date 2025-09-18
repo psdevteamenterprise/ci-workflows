@@ -70,6 +70,10 @@ jobs:
             console.log(`✅ Found installation ID: ${installationId} for ${owner}`);
             core.setOutput('installation_id', installationId);
             core.setOutput('jwt_token', jwtToken);
+        env:
+          GH_APP_ID: ${{ secrets.GH_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          repo: ${{ matrix.repo }}
       
       - name: Generate installation token
         id: generate_installation_token
