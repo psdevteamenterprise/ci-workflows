@@ -55,12 +55,14 @@ jobs:
           repository: ${{ github.repository }}
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-    
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-        
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
 
@@ -72,13 +74,17 @@ jobs:
           echo "::notice title=Package name::$PACKAGE_NAME"
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Debug NPM authentication
-        run: |
-          echo "NPM registry: $(npm config get registry)"
-          npm whoami || echo "Not logged in"
+      - name: Authenticate to NPM
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Debug NPM authentication
+        run: |
+              echo "NPM registry: $(npm config get registry)"
+              npm whoami
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Run Semantic Release
         id: release
