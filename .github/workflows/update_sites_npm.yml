@@ -40,79 +40,58 @@ jobs:
       - name: Set up jq (to parse JSON)
         run: sudo apt-get install -y jq
 
-      - name: Generate app JWT token
-        id: generate_jwt
-        uses: peter-murray/workflow-application-token-action@v2
-        with:
-          application_id: ${{ secrets.GH_APP_ID }}
-          application_private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-
-      - name: Print JWT token info
-        run: |
-          token="${{ steps.generate_jwt.outputs.token }}"
-          echo "Token length: ${#token}"
-      
-      - name: Fetch installations raw
-        env:
-          JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
-        run: |
-          owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
-          repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
-          echo "Processing repo: $owner/$repo"
-
-          echo "Fetching all installations..."
-          installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/app/installations)
-
-          echo "Raw installations response:"
-          printf '%s\n' "$installations" | jq .
-
-          echo "$installations" > installations.json
-          jq . installations.json
-      
-      - name: Get installation ID by repo owner
+      - name: Generate JWT and get installation ID
         id: get_installation_id
-        env:
-          JWT_TOKEN: ${{ steps.generate_jwt.outputs.token }}
-        run: |
-              owner=$(echo "${{ matrix.repo }}" | cut -d'/' -f1)
-              repo=$(echo "${{ matrix.repo }}" | cut -d'/' -f2)
-              echo "Processing repo: $owner/$repo"
-          
-              echo "Fetching all installations..."
-              installations=$(curl -sSL -H "Authorization: Bearer $JWT_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                https://api.github.com/app/installations)
-          
-              echo "Raw installations response:"
-              echo "$installations" | jq .
-          
-              installation_id=$(echo "$installations" | jq -r --arg owner "$owner" '.installations[] | select(.account.login==$owner) | .id')
-              echo "Installation ID found for $owner: $installation_id"
-          
-              if [[ -z "$installation_id" || "$installation_id" == "null" ]]; then
-                echo "❌ Error: No installation found for owner $owner"
-                exit 1
-              fi
-          
-              echo "installation_id=$installation_id" >> $GITHUB_OUTPUT
-          
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { GH_APP_ID, GH_APP_PRIVATE_KEY, repo } = process.env;
+            const owner = repo.split('/')[0];
+            const { createAppAuth } = require("@octokit/auth-app");
+            const appAuth = createAppAuth({
+              appId: GH_APP_ID,
+              privateKey: GH_APP_PRIVATE_KEY,
+            });
+            const appAuthentication = await appAuth({ type: "app" });
+            const jwtToken = appAuthentication.token;
+            console.log("JWT Token generated successfully.");
 
+            const octokit = github.getOctokit(jwtToken);
+            console.log(`Fetching installations for owner: ${owner}`);
+            const { data: installations } = await octokit.rest.apps.listInstallations();
+
+            const installation = installations.find(inst => inst.account.login === owner);
+            if (!installation) {
+              console.error(`❌ Error: No installation found for owner ${owner}`);
+              throw new Error(`No installation found for owner ${owner}`);
+            }
+
+            const installationId = installation.id;
+            console.log(`✅ Found installation ID: ${installationId} for ${owner}`);
+            core.setOutput('installation_id', installationId);
+            core.setOutput('jwt_token', jwtToken);
+      
       - name: Generate installation token
         id: generate_installation_token
         run: |
           installation_id=${{ steps.get_installation_id.outputs.installation_id }}
+          jwt_token=${{ steps.get_installation_id.outputs.jwt_token }}
           echo "Generating installation token for installation ID: $installation_id"
           token_response=$(curl -sSL -X POST \
-            -H "Authorization: Bearer ${{ steps.generate_jwt.outputs.token }}" \
+            -H "Authorization: Bearer $jwt_token" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/app/installations/$installation_id/access_tokens")
           echo "Raw token response:"
           echo "$token_response" | jq .
           token=$(echo "$token_response" | jq -r '.token')
-          echo "Installation token: $token"
+          if [[ -z "$token" || "$token" == "null" ]]; then
+            echo "❌ Error: Failed to generate installation token"
+            echo "Response: $token_response"
+            exit 1
+          fi
+          echo "Installation token generated."
           echo "installation_token=$token" >> $GITHUB_OUTPUT
+
 
       - name: Checkout repo
         uses: actions/checkout@v4
