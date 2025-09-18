@@ -73,11 +73,6 @@ jobs:
           echo "::notice title=Package name::$PACKAGE_NAME"
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Authenticate to NPM
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Debug NPM authentication
         run: |
             echo "NPM registry: $(npm config get registry)"
