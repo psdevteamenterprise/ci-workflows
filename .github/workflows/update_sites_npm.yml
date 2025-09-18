@@ -13,9 +13,9 @@ on:
         type: string
         required: true
       wix_site:
-          type: boolean
-          required: false
-          default: true
+        type: boolean
+        required: false
+        default: true
     secrets:
       GH_APP_ID:
         required: true
@@ -40,68 +40,20 @@ jobs:
       - name: Set up jq (to parse JSON)
         run: sudo apt-get install -y jq
 
-      - name: Generate JWT and get installation ID
-        id: get_installation_id
-        uses: actions/github-script@v6
+      - name: Generate installation token (GitHub App)
+        id: app-token
+        uses: actions/create-github-app-token@v1
         with:
-          script: |
-            const { GH_APP_ID, GH_APP_PRIVATE_KEY, repo } = process.env;
-            const owner = repo.split('/')[0];
-            const { createAppAuth } = require("@octokit/auth-app");
-            const appAuth = createAppAuth({
-              appId: GH_APP_ID,
-              privateKey: GH_APP_PRIVATE_KEY,
-            });
-            const appAuthentication = await appAuth({ type: "app" });
-            const jwtToken = appAuthentication.token;
-            console.log("JWT Token generated successfully.");
-
-            const octokit = github.getOctokit(jwtToken);
-            console.log(`Fetching installations for owner: ${owner}`);
-            const { data: installations } = await octokit.rest.apps.listInstallations();
-
-            const installation = installations.find(inst => inst.account.login === owner);
-            if (!installation) {
-              console.error(`❌ Error: No installation found for owner ${owner}`);
-              throw new Error(`No installation found for owner ${owner}`);
-            }
-
-            const installationId = installation.id;
-            console.log(`✅ Found installation ID: ${installationId} for ${owner}`);
-            core.setOutput('installation_id', installationId);
-            core.setOutput('jwt_token', jwtToken);
-        env:
-          GH_APP_ID: ${{ secrets.GH_APP_ID }}
-          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
-      
-      - name: Generate installation token
-        id: generate_installation_token
-        run: |
-          installation_id=${{ steps.get_installation_id.outputs.installation_id }}
-          jwt_token=${{ steps.get_installation_id.outputs.jwt_token }}
-          echo "Generating installation token for installation ID: $installation_id"
-          token_response=$(curl -sSL -X POST \
-            -H "Authorization: Bearer $jwt_token" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/app/installations/$installation_id/access_tokens")
-          echo "Raw token response:"
-          echo "$token_response" | jq .
-          token=$(echo "$token_response" | jq -r '.token')
-          if [[ -z "$token" || "$token" == "null" ]]; then
-            echo "❌ Error: Failed to generate installation token"
-            echo "Response: $token_response"
-            exit 1
-          fi
-          echo "Installation token generated."
-          echo "installation_token=$token" >> $GITHUB_OUTPUT
-
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: ${{ matrix.repo.split('/')[0] }}
+          repositories: ${{ matrix.repo.split('/')[1] }}
 
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.repo }}
-          token: ${{ steps.generate_installation_token.outputs.installation_token }}
+          token: ${{ steps.app-token.outputs.token }}
           ref: main
 
       - name: Setup NPM auth
@@ -145,8 +97,8 @@ jobs:
         id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ steps.generate_installation_token.outputs.installation_token }}
+          token: ${{ steps.app-token.outputs.token }}
           commit-message: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
           title: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
-          body: "Bumps the version of ${{ inputs.package_name }} to `v${{ inputs.new_version }}` to bring it up to date."
+          body: "Bumps the version of ${{ inputs.package_name }} to \`v${{ inputs.new_version }}\` to bring it up to date."
           branch: "update-${{ inputs.package_name }}-v${{ inputs.new_version }}"
