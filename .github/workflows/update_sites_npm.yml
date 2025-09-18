@@ -78,6 +78,11 @@ jobs:
       - name: Install Wix CLI
         if: ${{ inputs.wix_site }}
         run: npm install -g @wix/cli
+      
+      - name: Install Wix CLI
+        if: ${{ inputs.wix_site }}
+        run: npm install -g @wix/cli
+        timeout-minutes: 10
 
       - name: Login to Wix
         if: ${{ inputs.wix_site }}
