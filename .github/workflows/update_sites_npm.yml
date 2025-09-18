@@ -70,10 +70,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-          echo "NPM auth file created at ~/.npmrc"
-      
-      - name: Clean npm cache
-        run: npm cache clean --force        
+          echo "NPM auth file created at ~/.npmrc"       
 
       - name: Install dependencies
         run: npm install
