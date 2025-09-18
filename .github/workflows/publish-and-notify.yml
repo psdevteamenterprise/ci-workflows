@@ -55,13 +55,12 @@ jobs:
           repository: ${{ github.repository }}
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-          
+    
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-          registry-url: 'https://registry.npmjs.org'
-
+        
       - name: Install dependencies
         run: npm ci
 
@@ -73,19 +72,13 @@ jobs:
           echo "::notice title=Package name::$PACKAGE_NAME"
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Debug NPM authentication
-        run: |
-            echo "NPM registry: $(npm config get registry)"
-            npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        
-      - name: Release
-        run: npx semantic-release
+      - name: Run Semantic Release
+        id: release
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Debug publish outputs 
         run: |
           echo "isPublished: ${{ steps.release.outputs.new_release_published }}"
