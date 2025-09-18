@@ -1,103 +1,100 @@
 name: Publish & Notify
 
 on:
- workflow_call:
-   inputs:
+  workflow_call:
+    inputs:
       sites_to_update:
-       description: "Array of repos to update"
-       required: false
-       type: string
-       default: '[]'
+        description: "Array of repos to update"
+        required: false
+        type: string
+        default: '[]'
       npm_packages_to_update:
         description: "Array of npm packages to update"
         type: string
         required: false
         default: '[]'
-       
-   secrets:
-     GH_TOKEN:
-       required: true
-     NPM_TOKEN:
-       required: true
-     GH_APP_ID:
-       required: true
-     GH_APP_PRIVATE_KEY:
-       required: true
-     WIX_CLI_API_KEY:
-       required: true
+    
+    secrets:
+      GH_TOKEN:
+        required: true
+      NPM_TOKEN:
+        required: true
+      GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
+        required: true
+      WIX_CLI_API_KEY:
+        required: true
 
-   outputs:
-     version:
-       description: "The new package version released"
-       value: ${{ jobs.publish.outputs.version }}
-     releaseType:
-       description: "The type of release (major, minor, patch, none)"
-       value: ${{ jobs.publish.outputs.releaseType }}
-     isPublished:
-       description: "Whether a new release was published"
-       value: ${{ jobs.publish.outputs.isPublished }}
-     package_name:
-       description: "The name of the published package"
-       value: ${{ jobs.publish.outputs.package_name }}
-
+    outputs:
+      version:
+        description: "The new package version released"
+        value: ${{ jobs.publish.outputs.version }}
+      releaseType:
+        description: "The type of release (major, minor, patch, none)"
+        value: ${{ jobs.publish.outputs.releaseType }}
+      isPublished:
+        description: "Whether a new release was published"
+        value: ${{ jobs.publish.outputs.isPublished }}
+      package_name:
+        description: "The name of the published package"
+        value: ${{ jobs.publish.outputs.package_name }}
 
 jobs:
   publish:
-   runs-on: ubuntu-latest
-   outputs:
-     version: ${{ steps.release.outputs.new_release_version }}
-     releaseType: ${{ steps.release.outputs.release_type }}
-     isPublished: ${{ steps.release.outputs.new_release_published }}
-     package_name: ${{ steps.get_package_name.outputs.name }}
-   steps:
-     - name: Checkout repository
-       uses: actions/checkout@v4
-       with:
-         repository: ${{ github.repository }}
-         fetch-depth: 0
-         token: ${{ secrets.GH_TOKEN }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.new_release_version }}
+      releaseType: ${{ steps.release.outputs.release_type }}
+      isPublished: ${{ steps.release.outputs.new_release_published }}
+      package_name: ${{ steps.get_package_name.outputs.name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
     
-     - name: Setup Node.js
-       uses: actions/setup-node@v4
-       with:
-         node-version: 'lts/*'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+        
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get package name
+        id: get_package_name
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          echo "Package name: $PACKAGE_NAME"
+          echo "::notice title=Package name::$PACKAGE_NAME"
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Debug NPM authentication
+        run: |
+          echo "NPM registry: $(npm config get registry)"
+          npm whoami || echo "Not logged in"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 
-     - name: Install dependencies
-       run: npm ci
+      - name: Run Semantic Release
+        id: release
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-
-     - name: Get package name
-       id: get_package_name
-       run: |
-         PACKAGE_NAME=$(node -p "require('./package.json').name")
-         echo "Package name: $PACKAGE_NAME"
-         echo "::notice title=Package name::$PACKAGE_NAME"
-         echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-
-     - name: Debug Git status
-       run: |
-          git branch
-          git status
-          git fetch origin main
-          git log -1
-          git remote -v
-
-     - name: Run Semantic Release
-       id: release
-       uses: cycjimmy/semantic-release-action@v4
-       env:
-         GH_TOKEN: ${{ secrets.GH_TOKEN }}
-         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-     - name: Debug publish outputs 
-       run: |
-        echo "isPublished: ${{ steps.release.outputs.new_release_published }}"
-        echo "releaseType: ${{ steps.release.outputs.release_type }}"
-        echo "version: ${{ steps.release.outputs.new_release_version }}"
-        echo "package_name: ${{ steps.get_package_name.outputs.name }}"
-        echo "sites_to_update: ${{ inputs.sites_to_update }}"
-        echo "npm_packages_to_update: ${{ inputs.npm_packages_to_update }}"
+      - name: Debug publish outputs 
+        run: |
+          echo "isPublished: ${{ steps.release.outputs.new_release_published }}"
+          echo "releaseType: ${{ steps.release.outputs.release_type }}"
+          echo "version: ${{ steps.release.outputs.new_release_version }}"
+          echo "package_name: ${{ steps.get_package_name.outputs.name }}"
+          echo "sites_to_update: ${{ inputs.sites_to_update }}"
+          echo "npm_packages_to_update: ${{ inputs.npm_packages_to_update }}"
       
   notify-sites:
     needs: publish
