@@ -58,6 +58,11 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
     
+      - name: Debug GitHub token identity
+        run: |
+          echo "Checking which user is tied to this token..."
+          curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" https://api.github.com/user | jq '.login'
+    
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
