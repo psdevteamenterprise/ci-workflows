@@ -57,6 +57,9 @@ jobs:
           repository: ${{ github.repository }}
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
+          
+      - name: Show git remote
+        run: git remote -v
     
       - name: Debug GitHub token identity
         run: |
