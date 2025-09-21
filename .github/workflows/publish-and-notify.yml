@@ -23,8 +23,10 @@ on:
         required: true
       GH_APP_PRIVATE_KEY:
         required: true
-      WIX_CLI_API_KEY:
-        required: true
+      WIX_PS_API_KEY:
+          required: false
+      WIX_SR_API_KEY:
+          required: false
 
     outputs:
       version:
@@ -100,7 +102,8 @@ jobs:
     secrets:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
-      WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
+      WIX_PS_API_KEY: ${{ secrets.WIX_PS_API_KEY }}
+      WIX_SR_API_KEY: ${{ secrets.WIX_SR_API_KEY }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   update-npm-packages:
@@ -115,5 +118,4 @@ jobs:
     secrets:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
-      WIX_CLI_API_KEY: ${{ secrets.WIX_CLI_API_KEY }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

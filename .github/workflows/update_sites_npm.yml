@@ -21,8 +21,10 @@ on:
         required: true
       GH_APP_PRIVATE_KEY:
         required: true
-      WIX_CLI_API_KEY:
-        required: true
+      WIX_PS_API_KEY:
+        required: false
+      WIX_SR_API_KEY:
+        required: false
       NPM_TOKEN:
         required: true
 
@@ -34,12 +36,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo: ${{ fromJSON(inputs.repos_to_update) }}
+        include: ${{ fromJSON(inputs.repos_to_update) }}
 
     steps:
-      - name: Set up jq (to parse JSON)
-        run: sudo apt-get install -y jq
-      
       - name: Extract repo owner and name
         id: repo-info
         run: |
@@ -70,7 +69,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-          echo "NPM auth file created at ~/.npmrc"       
+          echo "NPM auth file created at ~/.npmrc"
 
       - name: Install dependencies
         run: npm install --ignore-scripts
@@ -81,7 +80,7 @@ jobs:
 
       - name: Login to Wix
         if: ${{ inputs.wix_site }}
-        run: wix login --api-key ${{ secrets.WIX_CLI_API_KEY }}
+        run: wix login --api-key ${{ secrets[matrix.secret] }}
 
       - name: Bump NPM package version
         run: |
@@ -102,7 +101,7 @@ jobs:
             git add wix.lock
           fi
 
-      - name: Create Pull Request 
+      - name: Create Pull Request
         id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:
