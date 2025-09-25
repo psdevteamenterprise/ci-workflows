@@ -55,3 +55,58 @@ jobs:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
           owner: ${{ steps.repo-info.outputs.owner }}
+          repositories: ${{ steps.repo-info.outputs.name }}
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ steps.app-token.outputs.token }}
+          ref: main
+
+      - name: Setup NPM auth
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          echo "NPM auth file created at ~/.npmrc"
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Install Wix CLI
+        if: ${{ inputs.wix_site }}
+        run: npm install -g @wix/cli
+
+      - name: Login to Wix
+        if: ${{ inputs.wix_site }}
+        run: wix login --api-key ${{ secrets[matrix.secret] }}
+
+      - name: Bump NPM package version
+        run: |
+          echo "Updating package ${{ inputs.package_name }} to version ${{ inputs.new_version }}"
+          npm install ${{ inputs.package_name }}@${{ inputs.new_version }} --save-exact
+          if [ "${{ inputs.wix_site }}" = "true" ]; then
+            echo "Running wix install..."
+            wix install
+          fi
+
+      - name: Add changes to git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Adding files to git..."
+          git add package.json package-lock.json
+          if [ "${{ inputs.wix_site }}" = "true" ]; then
+            git add wix.lock
+          fi
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
+          title: "fix: update ${{ inputs.package_name }} to v${{ inputs.new_version }}"
+          body: "Bumps the version of ${{ inputs.package_name }} to \`v${{ inputs.new_version }}\` to bring it up to date."
+          branch: "update-${{ inputs.package_name }}-v${{ inputs.new_version }}"
