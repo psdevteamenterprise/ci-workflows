@@ -1,0 +1,57 @@
+name: Update NPM Package on hosts using Github APP
+
+on:
+  workflow_call:
+    inputs:
+      new_version:
+        type: string
+        required: true
+      repos_to_update:
+        type: string
+        required: true
+      package_name:
+        type: string
+        required: true
+      wix_site:
+        type: boolean
+        required: false
+        default: true
+    secrets:
+      GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
+        required: true
+      WIX_PS_API_KEY:
+        required: false
+      WIX_SR_API_KEY:
+        required: false
+      NPM_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJSON(inputs.repos_to_update) }}
+
+    steps:
+      - name: Extract repo owner and name
+        id: repo-info
+        run: |
+          repo="${{ matrix.repo }}"
+          owner=$(echo "$repo" | cut -d'/' -f1)
+          name=$(echo "$repo" | cut -d'/' -f2)
+          echo "owner=$owner" >> $GITHUB_OUTPUT
+          echo "name=$name" >> $GITHUB_OUTPUT
+
+      - name: Generate installation token (GitHub App)
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: ${{ steps.repo-info.outputs.owner }}
