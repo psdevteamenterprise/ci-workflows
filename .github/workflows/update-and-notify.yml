@@ -27,6 +27,8 @@ on:
         required: false
       WIX_SR_API_KEY:
         required: false
+      WIX_HM_API_KEY:
+        required: false
 
     outputs:
       version:
@@ -109,6 +111,7 @@ jobs:
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       WIX_PS_API_KEY: ${{ secrets.WIX_PS_API_KEY }}
       WIX_SR_API_KEY: ${{ secrets.WIX_SR_API_KEY }}
+      WIX_HM_API_KEY: ${{ secrets.WIX_HM_API_KEY }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   update-npm-packages:

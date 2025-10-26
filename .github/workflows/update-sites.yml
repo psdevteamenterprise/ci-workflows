@@ -25,6 +25,8 @@ on:
         required: false
       WIX_SR_API_KEY:
         required: false
+      WIX_HM_API_KEY:
+          required: false
       NPM_TOKEN:
         required: true
 
